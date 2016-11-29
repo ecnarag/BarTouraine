@@ -1,11 +1,13 @@
+import math
 from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
-from kivy.properties import StringProperty, NumericProperty, BooleanProperty, ObjectProperty
+from kivy.properties import StringProperty, NumericProperty, BooleanProperty, ObjectProperty, ListProperty
 from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.gridlayout import GridLayout
 
 class Bar(Widget):
 
@@ -66,13 +68,20 @@ class Personnel(Widget):
         buttcaf.bind(on_press = lambda x : action(Conso(0.5)))
         popup.open()
 
-class Escadron: #Pour permettre des trucs un peu globaux et surtout ajouter/retirer du personnel. (a completer pour le moment)
+class Escadron(Widget): #Pour permettre des trucs un peu globaux et surtout ajouter/retirer du personnel. (a completer pour le moment)
 
-    def __init__(self):
-        self.pers = []
+    n = NumericProperty(0)
+    grid = ObjectProperty(None)
+    pers = ListProperty([])
 
-    def addPerso(self,pers):
-        self.pers.append(pers)
+    def fillGrid(self):
+        grid = GridLayout(cols = int(math.sqrt(len(self.pers))))
+        for k in pers:
+            self.grid.add_widget(perso)
+
+    def addPerso(self,perso):
+        self.pers.append(perso)
+        grid.add_widget(perso)
 
 class BarApp(App):
 

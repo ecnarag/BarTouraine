@@ -1,33 +1,39 @@
 #: kivy 1.0.9
 
 <Bar>:
-    user: user
     Label:
         fontsize:50
         center_x:root.width/2
-        center_y:root.height/2
+        top:root.top - 50
         text:"Bienvenue au bar du Touraine !"
-    Personnel:
-        id: user
-        x:0
-        top:root.height
+    BoxLayout:
+        size:500,100
+        orientation: 'horizontal'
+        Personnel:
+            last_name:"Cordonnier"
+        Personnel:
+            last_name:"Ren"
+        Personnel:
+            last_name:"Toto"
+        Personnel:
+            last_name:"Lala"
+        Personnel:
+            last_name:"Foo"
 
 <Personnel>:
     size:100,100
-    pay: pay
     Button:
-        id:pay
-        on_press:root.eatConso()
-    Label:
-        size:50,50
-        center_x:root.center_x
-        bottom:root.y
-        fontsize:30
-        text:root.last_name
-    Label:
-        size:50,50
-        center_x:root.center_x
-        top:root.height
-        fontsize:30
-        text:str(root.solde) + "€"
-
+        pos:self.parent.pos
+        on_press:self.parent.eatConso()
+        Label:
+            size:50,50
+            center_x:root.center_x
+            bottom:root.y
+            fontsize:30
+            text:root.last_name
+        Label:
+            size:50,50
+            center_x:root.center_x
+            top:root.height
+            fontsize:30
+            text:str(root.solde) + "€"
