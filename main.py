@@ -92,7 +92,6 @@ class Personnel(Button): #Instance represents one user of the Bar app.
         self.solde -= cons.prix
 
     def eatConso(self): #Fonction qui s'ouvre quand on clique sur son icone.
-        print(self.last_name, self.solde)
         #Pour mettre plusieurs contenus dans une même popup, utiliser une BoxLayout.
         box = BoxLayout(orientation = 'horizontal', spacing = 10)
         buttcaf = Button(text = 'Cafe', size_hint = (0.3,1))
@@ -135,7 +134,6 @@ class BarApp(App):
     def build(self):
         self.esc = Escadron()
         self.esc.loadEsc(open("escadronfile.txt","rb"))
-        print(self.esc.pers)
         g = self.esc.grid()
         g.add_widget(Label(text = "Bienvenue au bar du Touraine !"))
         return g
@@ -155,10 +153,10 @@ Ce qui fonctionne :
 - le changement de solde en appuyant sur un bouton
 - les boutons sont bien définis
 - le solde est mis à jour
+- il y a un fichier loadé pour l'escadron
+- les données sont sauvegardées quand l'app est fermée
 Ce qui ne fonctionne pas / ce qui reste à faire :
 - le dernier bouton a un comportement bizarre quand on l'utilise (le nom et le "€" disparaissent mais le solde est bien actualisé)
 - faire autre chose que planter quand il y a un nombre négatif entré dans "add money"
 - l'appli n'est pas transférée sous android !!!!!
-- il n'y a pas encore de fichier loadé pour l'escadron
-- je ne sais pas encore comment save les données quand l'appli est fermée.
 - il reste toute la déco à gérer"""
