@@ -48,8 +48,8 @@ class Escadron(GridLayout): #Pour permettre des trucs un peu globaux et surtout 
 
     def saveEsc(self,fle): #Save Escadron in a file
         for i in range(len(self.pers_widg)): #Conversion Widgets -> Dicts to be pickable/unpickable
-            k = pers_widg[i]
-            pers[i] = {"grade": k.grade, "lst":k.last_name, "fst":k.first_name, "sld":k.solde} #Update values to make sure any changes are recorded
+            k = self.pers_widg[i]
+            self.pers[i] = {"grade": k.grade, "lst":k.last_name, "fst":k.first_name, "solde":k.solde} #Update values to make sure any changes are recorded
             #(We probably use the saveEsc function when closing the app)
         x = {"n": self.n, "pers": self.pers}
         pickle.dump({"pers":self.pers, "n":self.n}, fle)
@@ -58,7 +58,6 @@ class Escadron(GridLayout): #Pour permettre des trucs un peu globaux et surtout 
         x = pickle.load(fle)
         self.n = x["n"]
         self.pers = x["pers"]
-        self.grid()
 
     def grid(self): #Build grid
         self.g = GridLayout(cols = int(math.sqrt(self.n)))
@@ -86,6 +85,7 @@ class Personnel(Button): #Instance represents one user of the Bar app.
         super(Personnel,self).__init__(**kwargs)
 
     def addMoney(self, money):
+        assert money >= 0 #Don't fuck your friends
         self.solde += money
 
     def payCons(self, cons):
@@ -130,25 +130,34 @@ class Personnel(Button): #Instance represents one user of the Bar app.
 
 class BarApp(App):
 
+    esc = ObjectProperty(Escadron())
+
     def build(self):
-        esc = Escadron()
-        g = esc.grid()
+        self.esc = Escadron()
+        self.esc.loadEsc(open("escadronfile.txt","rb"))
+        print(self.esc.pers)
+        g = self.esc.grid()
         g.add_widget(Label(text = "Bienvenue au bar du Touraine !"))
         return g
+
+    def on_stop(self):
+       self.esc.saveEsc(open("escadronfile.txt","wb"))
 
 if __name__ == '__main__':
     BarApp().run()
 
-"""COMMENTAIRES POUR MOI-MÊME: 
+"""COMMENTAIRES POUR MOI-MÊME:
 Aujourd'hui, j'ai transformé le truc pour ajouter perso par perso en un truc qui ajoute un escadron direct, sous forme de GridLayout, mais ça marche moyennement : les boutons ne se réfèrent pas à la personne et je ne sais pas comment actualiser la string affichée (elle affiche toujours le solde 0€ contrairement à ce que fait le .kv, cf https://kivy.org/docs/guide/lang.html ce qu'ils disent sur les GridLayout, mais je ne sais pas quoi mettre comme setter où).
 Résultat : rien ne marche, mais on avance quand même, en théorie.
 Ce qui fonctionne :
 - les boutons de consommation, quand on les définissait avec kivy
 - le save/load de l'escadron dans un fichier avec pickle
 - le changement de solde en appuyant sur un bouton
+- les boutons sont bien définis
+- le solde est mis à jour
 Ce qui ne fonctionne pas / ce qui reste à faire :
-- les boutons se recoupent les uns les autres
-- le solde n'est pas mis à jour (cf. ci-dessus)
+- le dernier bouton a un comportement bizarre quand on l'utilise (le nom et le "€" disparaissent mais le solde est bien actualisé)
+- faire autre chose que planter quand il y a un nombre négatif entré dans "add money"
 - l'appli n'est pas transférée sous android !!!!!
 - il n'y a pas encore de fichier loadé pour l'escadron
 - je ne sais pas encore comment save les données quand l'appli est fermée.
