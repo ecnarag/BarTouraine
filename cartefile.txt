@@ -10,7 +10,7 @@ p5
 F0.8
 sS'tot'
 p6
-I52
+I0
 ssS'Bi\xc3\xa8re'
 p7
 (dp8
@@ -24,14 +24,14 @@ p9
 g5
 F0.8
 sg6
-I0
+I10
 ssS'Caf\xc3\xa9'
 p11
 (dp12
 g5
 F0.5
 sg6
-I4
+I0
 sssS'n'
 p13
 I4
