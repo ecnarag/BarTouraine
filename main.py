@@ -25,33 +25,103 @@ Conseils pour le code : utilisez un gestionnaire de versions (j'ai utilisé GIT,
 J'ai essayé de commenter au maximum (un peu en franglais ...) et d'avoir des conventions assez réglo : saut de ligne après les définitions des classes et entre deux blocs, noms des fonctions avec des majusculesAuDébutDeChaqueMot, noms de variables explicites, donc ça devrait être compréhensible. Bonne chance !"""
 
 
-class Conso: #Everything is in the title
+class Carte(GridLayout): #L'équivalent de Escadron -> Personnel pour les Consos
 
-    def __init__(self, px):
+    g = ObjectProperty(GridLayout())
+    cons = {}
+    cons_widg = {}
+    n = 0
+
+    def saveCarte(self, fle):
+       pickle.dump({"n":self.n, "cons":self.cons},fle)
+
+    def loadCarte(self,fle):
+        x = pickle.load(fle)
+        self.n = x["n"]
+        self.cons = x["cons"]
+
+    def addConso(self,conso):
+        n += 1
+        cons[conso.name] = {"px":conso.prix, "tot":conso.total}
+
+    def grid(self, perso):
+        self.g = BoxLayout(orientation = 'horizontal')
+        for i in self.cons.iteritems():
+            butt = Conso(perso, i[1]["px"],i[0],i[1]["tot"], size_hint = (1.0/self.n, 1))
+            self.cons_widg[i[0]] = butt
+            self.g.add_widget(butt)
+        return self.g
+
+class Conso(Button):
+#Everything is in the title
+
+    def __init__(self, perso, px, nm, tot, **kwargs):
+
         self.prix = px
+        self.perso = perso
+        self.name = nm
+        self.total = tot
+        super(Conso,self).__init__(**kwargs)
 
-class Escadron(GridLayout): #Pour permettre des trucs un peu globaux et surtout ajouter/retirer du personnel. (a completer pour le moment)
+class Stats(BoxLayout):
+#Classe qui contient les statistiques de l'escadron (pour le moment plus gros consommateur, plus mauvais payeur. Autres idées?)
+
+    def __init__(self,esc,carte,**kwargs):
+        self.escadron = esc
+        self.carte = carte
+        super(Stats,self).__init__(**kwargs)
+
+    def plusGrosConso(self): #Returns a list with the number of "consos" and names of the top 3 consumers (since the launching of the app)
+        L = [(k["cns"],k["lst"]) for k in self.escadron.pers]
+        L = list(reversed(sorted(L)))
+        return L[:3]
+
+    def plusMauvaisPayeur(self): #Returns a list with the "solde" and names of the top 3 most in debt (lower "soldes")
+        L = [(k["solde"],k["lst"]) for k in self.escadron.pers]
+        L = sorted(L)
+        return L[:3]
+
+    def totalBar(self):
+        return sum([k["solde"] for k in self.escadron.pers])
+
+    def inventaire(self):
+        result = "\n Consommations :\n"
+        for k in self.carte.cons.iteritems():
+            result += k[0] + " : " + str(k[1]["tot"]) + "\n"
+        return result
+
+    def inventaireToZero(self):
+        for k in self.carte.cons.iteritems():
+            k[1]["tot"] = 0
+
+    def press(self): #Function called when the Stats button is pressed
+        a = self.plusGrosConso()
+        b = self.plusMauvaisPayeur()
+        pop = Popup(title = "Statistiques",
+                    size_hint = (0.7,0.7),
+                    content = Label(text = "Total du bar\n" + str(self.totalBar()) + "\n\n" + "Les trois plus gros consommateurs du bar sont :\n" + a[0][1] + "\n" + a[1][1] + "\n" + a[2][1] + "\n"
+                            + "Les trois plus mauvais payeurs sont : \n" + b[0][1] + "\n" + b[1][1] + "\n" + b[2][1] + "\n"
+                            + self.inventaire()))
+        pop.open()
+
+class Escadron(GridLayout):
+#Pour afficher tout le monde dans une grille + enregistrer dans un fichier
 
     #Initialisation
     g = ObjectProperty(GridLayout())
     n = 4
-    pers = [{"grade":"ASP", "fst":"Garance", "lst":"Cordonnier","solde":0},
-            {"grade":"ASP","fst":"Vincent","lst":"Ren","solde":0},
-            {"grade":"ASP", "fst":"Lala", "lst":"Toto", "solde":15},
-            {"grade":"", "fst":"","lst":"Blu", "solde":0}]
+    pers = []
     pers_widg = []
 
     def addPerso(self,perso): #Add someone to the Escadron
-        print(self.n, perso.last_name)
         self.n += 1
         self.pers.append(perso.dic)
 
     def saveEsc(self,fle): #Save Escadron in a file
         for i in range(len(self.pers_widg)): #Conversion Widgets -> Dicts to be pickable/unpickable
             k = self.pers_widg[i]
-            self.pers[i] = {"grade": k.grade, "lst":k.last_name, "fst":k.first_name, "solde":k.solde} #Update values to make sure any changes are recorded
+            self.pers[i] = {"lst":k.last_name, "solde":k.solde, "cns":k.consos} #Update values to make sure any changes are recorded
             #(We probably use the saveEsc function when closing the app)
-        x = {"n": self.n, "pers": self.pers}
         pickle.dump({"pers":self.pers, "n":self.n}, fle)
 
     def loadEsc(self,fle): #Load Escadron from a file
@@ -63,90 +133,99 @@ class Escadron(GridLayout): #Pour permettre des trucs un peu globaux et surtout 
         self.g = GridLayout(cols = int(math.sqrt(self.n)))
         for i in range(len(self.pers)): #Add everyone in the grid
             k = self.pers[i]
-            perso = Personnel(gde = k["grade"], lst = k["lst"], fst = k["fst"], sld = k["solde"])
+            perso = Personnel(lst = k["lst"], sld = k["solde"], cns = k["cns"])
             self.pers_widg.append(perso)
-
-            def update_solde(instance, value): #To make sure that the apparent "solde" is equal to the actual "solde". (Bind the two values)
-                perso.children[0].text = str(perso.solde)
-            perso.bind(solde = update_solde)
-
             self.g.add_widget(self.pers_widg[i])
         return self.g
 
-class Personnel(Button): #Instance represents one user of the Bar app.
+class Personnel(Button):
+#Instance represents one user of the Bar app.
 
+    global app
     solde = NumericProperty()
 
-    def __init__(self, gde = "", fst = "", lst = "Toto", sld = 0, **kwargs):
-        self.grade = gde
-        self.first_name = fst
+    def __init__(self, lst = "", sld = 0, cns = 0, **kwargs):
         self.last_name = lst
+        self.consos = cns
         self.solde = sld
-        super(Personnel,self).__init__(**kwargs)
+        super(Personnel,self).__init__(**kwargs) #Init of the "Button" instance
 
     def addMoney(self, money):
         assert money >= 0 #Don't fuck your friends
         self.solde += money
 
     def payCons(self, cons):
+        app.card.cons[cons.name]["tot"] += 1
         self.solde -= cons.prix
+        self.consos += 1
 
-    def eatConso(self): #Fonction qui s'ouvre quand on clique sur son icone.
-        #Pour mettre plusieurs contenus dans une même popup, utiliser une BoxLayout.
-        box = BoxLayout(orientation = 'horizontal', spacing = 10)
-        buttcaf = Button(text = 'Cafe', size_hint = (0.3,1))
-        buttcons = Button(text = 'Conso', size_hint = (0.3,1))
-        buttadd = Button(text = 'Add mny', size_hint = (0.3,1))
-        box.add_widget(buttcaf)
-        box.add_widget(buttcons)
-        box.add_widget(buttadd)
-
-        popup = Popup(title = "Choisis ta conso",
-                    size_hint = (0.2,0.2),
-                    content = box)
-
-        def action(cons): #Action des boutons buttcaf et buttcons: consommation et fermeture de la popup
+    def multipleCons(self,n,cons):
+        for k in range(n):
             self.payCons(cons)
-            popup.dismiss()
 
-        def actionask(): #Action du bouton buttadd pour ajouter de l'argent: fermeture de popup et ouverture de popup2 avec un input utilisateur...
-            popup.dismiss()
-            textinput = TextInput(multiline = False,
-                                    focus = True,
-                                    text = "0")
-            popup2 = Popup(title = "Montant",
-                            size_hint = (0.2,0.2),
-                            content = textinput)
-            textinput.bind(on_text_validate = popup2.dismiss)
-            popup2.bind(on_dismiss = lambda x : self.addMoney(float(textinput.text)))
-            popup2.open()
-            return textinput.text
+    def action(self, cons): #Action des boutons buttcaf et buttcons: consommation et fermeture de la popup
+        textinput = TextInput(multiline = False,
+                                focus = True,
+                                text = "0")
+        popup2 = Popup(title = "Quantité de " + cons.name,
+                        size_hint = (0.2,0.2),
+                        content = textinput)
+        textinput.bind(on_text_validate = popup2.dismiss)
+        popup2.bind(on_dismiss = lambda x : self.multipleCons(int(textinput.text),cons))
+        popup2.open()
+        return textinput.text
 
-        buttadd.bind(on_press = lambda x : actionask())
-        buttcons.bind(on_press = lambda x : action(Conso(0.8)))
-        buttcaf.bind(on_press = lambda x : action(Conso(0.5)))
+    def actionask(self): #Action du bouton buttadd pour ajouter de l'argent: fermeture de popup et ouverture de popup2 avec un input utilisateur...
+        textinput = TextInput(multiline = False,
+                                focus = True,
+                                text = "0")
+        popup2 = Popup(title = "Montant",
+                        size_hint = (0.2,0.2),
+                        content = textinput)
+        textinput.bind(on_text_validate = popup2.dismiss)
+        popup2.bind(on_dismiss = lambda x : self.addMoney(float(textinput.text)))
+        popup2.open()
+        return textinput.text
+
+    def click(self): #Fonction appelée quand on clique sur son bouton
+        carte = app.card.grid(self)
+        content = BoxLayout(orientation = 'vertical', spacing = 10)
+        content.add_widget(Label(text = "Vous avez " + str(self.solde) + "€"))
+        content.add_widget(carte)
+        content.add_widget(Button(text = "Add\nmoney", on_press = lambda x : self.actionask()))
+        popup = Popup(title = "Choisis ta conso",
+                        size_hint = (0.3,0.5),
+                        content = content)
         popup.open()
 
 class BarApp(App):
 
     esc = ObjectProperty(Escadron())
+    card = ObjectProperty(Carte())
 
-    def build(self):
-        self.esc = Escadron()
+    def build(self): #Ce que l'application fait quand elle démarre
+        global app
+        app = self
+        self.esc = Escadron() #Construire un escadron
         self.esc.loadEsc(open("escadronfile.txt","rb"))
-        g = self.esc.grid()
-        g.add_widget(Label(text = "Bienvenue au bar du Touraine !"))
-        return g
+        self.root = root = self.esc.grid() #Construire une grille
+        self.card = Carte()
+        self.card.loadCarte(open("cartefile.txt","rb"))
+        stat = Stats(self.esc, self.card) #Construire les statistiques
+        root.add_widget(Label(text = "BIENVENUE"))
+        root.add_widget(Label(text = "AU BAR DU"))
+        root.add_widget(Label(text = "TOURAINE !"))
+        root.add_widget(stat)
+        return root
 
-    def on_stop(self):
-       self.esc.saveEsc(open("escadronfile.txt","wb"))
+    def on_stop(self): #Ce que l'application fait quand on la ferme (sauvegarde des données)
+       self.esc.saveEsc(open("escadronfile.txt","wb")) #Escadronfile est le fichier dans lequel toutes les données sont écrites (en binaire)
+       self.card.saveCarte(open("cartefile.txt","wb"))
 
 if __name__ == '__main__':
     BarApp().run()
 
 """COMMENTAIRES POUR MOI-MÊME:
-Aujourd'hui, j'ai transformé le truc pour ajouter perso par perso en un truc qui ajoute un escadron direct, sous forme de GridLayout, mais ça marche moyennement : les boutons ne se réfèrent pas à la personne et je ne sais pas comment actualiser la string affichée (elle affiche toujours le solde 0€ contrairement à ce que fait le .kv, cf https://kivy.org/docs/guide/lang.html ce qu'ils disent sur les GridLayout, mais je ne sais pas quoi mettre comme setter où).
-Résultat : rien ne marche, mais on avance quand même, en théorie.
 Ce qui fonctionne :
 - les boutons de consommation, quand on les définissait avec kivy
 - le save/load de l'escadron dans un fichier avec pickle
@@ -155,8 +234,12 @@ Ce qui fonctionne :
 - le solde est mis à jour
 - il y a un fichier loadé pour l'escadron
 - les données sont sauvegardées quand l'app est fermée
+- il y a un bouton statistiques
+- l'appli est transférée sous android !!!
 Ce qui ne fonctionne pas / ce qui reste à faire :
 - le dernier bouton a un comportement bizarre quand on l'utilise (le nom et le "€" disparaissent mais le solde est bien actualisé)
 - faire autre chose que planter quand il y a un nombre négatif entré dans "add money"
-- l'appli n'est pas transférée sous android !!!!!
-- il reste toute la déco à gérer"""
+- l'affichage est pas du tout optimisé pour mon téléphone, il faut voir ce que ça donne sur tablette
+- la partie "Médailles" est inexistante
+- gérer les stocks ": fichier consofile.py, plusieurs boutons avec une liste comme escadron
+- il reste toute la déco à gérer """
