@@ -14,8 +14,6 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
-
-
 from kivy.core.window import Window
 
 """ Informations pour toi, cher lecteur/modificateur de mon code.
@@ -131,6 +129,7 @@ class Escadron(GridLayout):
         self.pers_widg = list(filter(lambda x : x.last_name != name.text, self.pers_widg))
         self.n = len(self.pers)
 
+    #Par exemple ici on pourrait faire une factorisation pour ces fonctions qui se ressemblent : ouvrir une popup avec un certain nombre de boutons/labels et une liste de fonctions associées --> pour les deux fonctions suivantes et celles associées au mot de passe.
     def removeButton(self):
         name = TextInput(multiline = False,
                         text = "")
