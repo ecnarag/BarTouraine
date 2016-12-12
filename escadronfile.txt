@@ -673,9 +673,9 @@ g4
 S'Lefebvre'
 p172
 sg6
-I0
+F-0.8
 sg7
-I0
+I1
 sa(dp173
 g4
 S'Millet'

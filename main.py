@@ -22,14 +22,15 @@ from kivy.core.window import Window
 Cette application a été développée par Garance Cordonnier, X2016, pour le bar du Touraine.
 Il faut installer le module python KIVY (pip install kivy), le code est écrit pour Python 2 (oui, je sais, c'est sale,mais python3 ne fonctionnait pas avec kivy).
 Conseils pour le code : utilisez un gestionnaire de versions (j'ai utilisé GIT, niquel pour Linux et MacOS, existe aussi sous Windows) pour enregistrer vos modifications et garder un historique des versions précédentes, la doc kivy est en ligne à https://kivy.org/docs/ avec beaucoup d'exemples, beaucoup de réponses à vos questions sont sur le forum StackOverflow, la doc du module pickle est en ligne à https://docs.python.org/2/library/pickle.html et la plupart des modules écrits pour python ont leur doc sur https://anaconda.org.
-J'ai essayé de commenter au maximum (un peu en franglais ...) et d'avoir des conventions assez réglo : saut de ligne après les définitions des classes et entre deux blocs, noms des fonctions avec des majusculesAuDébutDeChaqueMot, noms de variables explicites, donc ça devrait être compréhensible. N'hésitez pas à commenter au maximum et à faire le code le plus propre possible (factorisation de code et jolies conventions). Bonne chance !"""
+J'ai essayé de commenter au maximum (un peu en franglais ...) et d'avoir des conventions assez réglo : saut de ligne après les définitions des classes et entre deux blocs, noms des fonctions avec des majusculesAuDébutDeChaqueMot, noms de variables explicites, donc ça devrait être compréhensible, mais il y a quand même des choses que j'ai dû changer en vitesse, donc du code de type copier-coller pas très optimisé. Normalement il y en a pas trop. N'hésitez pas à commenter au maximum et à faire le code le plus propre possible (factorisation de code et jolies conventions). Bonne chance !"""
 
-"""Ordre des classes: Carte - Conso - Stats - Escadron - Personnel - BarApp.
+"""Ordre des classes: Carte - Conso - Stats - Escadron - Personnel - PassWord - BarApp.
 La Carte contient les données générales sur les consos et la sérialization.
 La Conso contient les attributs d'une conso (nom, prix, total d'utilisation).
 Les Stats contiennent l'inventaire, les plus gros consommateurs, les plus mauvais payeurs, le total du bar et la fonction de remise à zéro.
 L'Escadron contient la sérialisation et les fonctions générales sur les utilisateurs.
 La classe Personnel contient les attributs d'un consommateur (nom, solde, nombre de consos ...) et les fonctions de consommation.
+La classe PassWord permet de changer le mot de passe gestion et de le conserver.
 La classe BarApp est la classe "principale" qui contient les fonctions de démarrage et de fermeture de l'application."""
 
 class Carte(GridLayout): #L'équivalent de Escadron -> Personnel pour les Consos
@@ -132,10 +133,9 @@ class Escadron(GridLayout):
 
     def removeButton(self):
         name = TextInput(multiline = False,
-                        focus = True,
                         text = "")
         popup = Popup(title = "Supprimer un personnel",
-                    size_hint = (0.2,0.2),
+                    size_hint = (0.4,0.4),
                     content = name)
         name.bind(on_text_validate = popup.dismiss)
         popup.bind(on_dismiss = lambda x : self.removePerso(name))
@@ -144,10 +144,9 @@ class Escadron(GridLayout):
 
     def addButton(self):
         name = TextInput(multiline = False,
-                    focus = True,
                     text = "")
         popup = Popup(title = "Nouveau personnel",
-                        size_hint = (0.2,0.2),
+                        size_hint = (0.4,0.4),
                         content = name)
         name.bind(on_text_validate = popup.dismiss)
         popup.bind(on_dismiss = lambda x: self.addPerso(Personnel(lst = name.text)))
@@ -167,11 +166,12 @@ class Escadron(GridLayout):
         self.pers = x["pers"]
 
     def grid(self): #Build grid
-        self.g = GridLayout(cols = int(math.sqrt(self.n)))
-        color = [(0,0,1,0.5),(0,0,1,0.6)]
+        col = int(math.sqrt(self.n + 3))
+        self.g = GridLayout(cols = col)
+        color = [(0,0,1,0.5),(0,0,1,0.55)]
         for i in range(len(self.pers)): #Add everyone in the grid
             k = self.pers[i]
-            perso = Personnel(lst = k["lst"], sld = k["solde"], cns = k["cns"], background_color = color[(i%2)])
+            perso = Personnel(lst = k["lst"], sld = k["solde"], cns = k["cns"], background_color = color[((i/col) + (i%col))%2])
             self.pers_widg.append(perso)
             self.g.add_widget(self.pers_widg[i])
         return self.g
@@ -189,7 +189,6 @@ class Personnel(Button):
         super(Personnel,self).__init__(**kwargs) #Init of the "Button" instance
 
     def addMoney(self, money):
-        assert money >= 0 #Don't fuck your friends
         self.solde += money
 
     def payCons(self, cons):
@@ -203,10 +202,10 @@ class Personnel(Button):
 
     def action(self, cons): #Action des boutons buttcaf et buttcons: consommation et fermeture de la popup
         textinput = TextInput(multiline = False,
-                                focus = True,
-                                text = "0")
+                                text = "0",
+                                input_type = "number")
         popup2 = Popup(title = "Quantité de " + cons.name,
-                        size_hint = (0.2,0.2),
+                        size_hint = (0.4,0.4),
                         content = textinput)
         textinput.bind(on_text_validate = popup2.dismiss)
         popup2.bind(on_dismiss = lambda x : self.multipleCons(int(textinput.text),cons))
@@ -214,16 +213,24 @@ class Personnel(Button):
         return textinput.text
 
     def actionask(self): #Action du bouton buttadd pour ajouter de l'argent: fermeture de popup et ouverture de popup2 avec un input utilisateur...
-        textinput = TextInput(multiline = False,
-                                focus = True,
-                                text = "0")
+        montant = TextInput(multiline = False,
+                                text = "0",
+                                input_type = "number")
+        pwd = TextInput(multiline = False,
+                        text = "Entrer ici le mot de passe")
+        box = BoxLayout(orientation = "vertical")
+        box.add_widget(montant)
+        box.add_widget(pwd)
         popup2 = Popup(title = "Montant",
-                        size_hint = (0.2,0.2),
-                        content = textinput)
-        textinput.bind(on_text_validate = popup2.dismiss)
-        popup2.bind(on_dismiss = lambda x : self.addMoney(float(textinput.text)))
+                        size_hint = (0.4,0.4),
+                        content = box)
+        pwd.bind(on_text_validate = popup2.dismiss)
+        def pay (pwd, montant):
+            if pwd.text == app.pwd.password:
+                self.addMoney(float(montant.text))
+        popup2.bind(on_dismiss = lambda x: pay(pwd, montant))
         popup2.open()
-        return textinput.text
+        return montant.text
 
     def click(self): #Fonction appelée quand on clique sur son bouton
         carte = app.card.grid(self)
@@ -238,6 +245,39 @@ class Personnel(Button):
                         content = content)
         popup.open()
 
+class PassWord(Button):
+    password = "" #Le mot de passe par défaut
+
+    def __init__(self, pwd = "",**kwargs): #Initialisation
+        self.password = pwd
+        super(PassWord,self).__init__(**kwargs)
+
+    def save(self, fle): #Enregistrement
+        pickle.dump(self.password, fle)
+
+    def load(self,fle): #Récupération du mot de passe enregistré
+        self.password = pickle.load(fle)
+
+    def change(self, old, new): #Changer le mot de passe si et seulement si on connait l'ancien
+        if old == self.password:
+            self.password = new
+
+    def change_pass(self): #Ouvrir une fenêtre, demander l'ancien et le nouveau mdp et changer.
+        old = TextInput(text = "Ancien",
+                        multiline = False)
+        new = TextInput(text = "Nouveau",
+                        multiline = False)
+        box = BoxLayout(orientation = "vertical")
+        box.add_widget(old)
+        box.add_widget(new)
+        popup = Popup(size_hint = (0.4,0.4),
+                        title = "Changer le mot de passe",
+                        content = box)
+        new.bind(on_text_validate = popup.dismiss)
+        popup.bind(on_dismiss = lambda x : self.change(old.text, new.text))
+        popup.open()
+        return new.text
+
 class BarApp(App):
 
     esc = ObjectProperty(Escadron())
@@ -246,6 +286,9 @@ class BarApp(App):
     def build(self): #Ce que l'application fait quand elle démarre
         global app
         app = self
+        self.pwd = PassWord()
+        self.pwd.load(open("pwdfile.txt","r"))
+        self.icon = "touraine.jpeg"
         self.esc = Escadron() #Construire un escadron
         self.esc.loadEsc(open("escadronfile.txt","rb"))
         self.root = root = self.esc.grid() #Construire une grille
@@ -259,33 +302,14 @@ class BarApp(App):
         box.add_widget(Button(text = "Add", on_press = lambda x: self.esc.addButton()))
         box.add_widget(Button(text = "Remove", on_press = lambda x : self.esc.removeButton()))
         root.add_widget(box)
+        root.add_widget(self.pwd)
         return root
 
     def on_stop(self): #Ce que l'application fait quand on la ferme (sauvegarde des données)
         self.esc.saveEsc(open("escadronfile.txt","wb")) #Escadronfile est le fichier dans lequel toutes les données sont écrites (en binaire)
         self.card.saveCarte(open("cartefile.txt","wb"))
+        self.pwd.save(open("pwdfile.txt","w"))
 
 if __name__ == '__main__':
     BarApp().run()
 
-"""COMMENTAIRES POUR MOI-MÊME:
-Ce qui fonctionne :
-- les boutons de consommation, quand on les définissait avec kivy
-- le save/load de l'escadron dans un fichier avec pickle
-- le changement de solde en appuyant sur un bouton
-- les boutons sont bien définis
-- le solde est mis à jour
-- il y a un fichier loadé pour l'escadron
-- les données sont sauvegardées quand l'app est fermée
-- il y a un bouton statistiques
-- l'appli est transférée sous android !!!
-- gestion des stocks
-- remise à zéro des stocks
-- affichage en rouge des personnes en négatif
-- ajouter/supprimer quelqu'un
-- couleurs alternées
-Ce qui ne fonctionne pas / ce qui reste à faire :
-- important ? actualiser les nouvelles personnes
-- faire autre chose que planter quand il y a un nombre négatif entré dans "add money"
-- l'affichage est pas du tout optimisé pour mon téléphone, il faut voir ce que ça donne sur tablette
-"""

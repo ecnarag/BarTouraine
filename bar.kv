@@ -19,11 +19,18 @@
         on_press:self.parent.press()
         Label:
             center: self.parent.center
-            font_size:18
+            font_size:15
             text:"STATS"
     Button:
         on_press:self.parent.inventaireToZero()
         Label:
             center: self.parent.center
-            font_size:18
+            font_size:15
             text:"Reset"
+
+<PassWord>:
+    on_press:self.change_pass()
+    Label:
+        center: self.parent.center
+        font_size:15
+        text:"Mdp"

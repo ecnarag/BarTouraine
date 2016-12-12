@@ -24,7 +24,7 @@ p9
 g5
 F0.8
 sg6
-I10
+I0
 ssS'Caf\xc3\xa9'
 p11
 (dp12
