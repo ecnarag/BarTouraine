@@ -72,6 +72,8 @@ class Conso(Button):
 class Stats(BoxLayout):
 #Classe qui contient les statistiques de l'escadron (pour le moment plus gros consommateur, plus mauvais payeur. Autres idées?)
 
+    global app
+
     def __init__(self,esc,carte,**kwargs):
         self.escadron = esc
         self.carte = carte
@@ -97,8 +99,19 @@ class Stats(BoxLayout):
         return result
 
     def inventaireToZero(self):
-        for k in self.carte.cons.iteritems():
-            k[1]["tot"] = 0
+        pwd = TextInput(multiline = False, text = "Entrez le mot de passe")
+        pop = Popup(size_hint = (0.4,0.4), content = pwd)
+        pwd.bind(on_text_validate = pop.dismiss)
+        def action():
+            if pwd.text == app.pwd.password:
+                for k in self.carte.cons.iteritems():
+                   k[1]["tot"] = 0
+                for k in app.esc.pers:
+                    k["px"] = 0
+            else:
+                Popup(size_hint = (0.4,0.4), content = Label(text = "Erreur")).open()
+        pop.bind(on_dismiss = lambda _ : action())
+        pop.open()
 
     def press(self): #Function called when the Stats button is pressed
         a = self.plusGrosConso()
@@ -108,6 +121,40 @@ class Stats(BoxLayout):
                     content = Label(text = "Total du bar\n" + str(self.totalBar()) + "\n\n" + "Les trois plus gros consommateurs du bar sont :\n" + a[0][1] + "\n" + a[1][1] + "\n" + a[2][1] + "\n"
                             + "Les trois plus mauvais payeurs sont : \n" + b[0][1] + "\n" + b[1][1] + "\n" + b[2][1] + "\n"
                             + self.inventaire()))
+        pop.open()
+
+class Depenses(Button):
+#Pour afficher les dépenses par personnes depuis le dernier Reset
+
+    #Initialisation
+    def __init__(self, esc, **kwargs):
+        self.escadron = esc
+        super(Depenses, self).__init__(**kwargs)
+
+    def affichage(self): #Cette fonction est dégueu, j'en avais marre. Si t'as la foi, fais une boucle au lieu de 4 éléments en copier-coller, c'est plus joli mais je suis fatiguée.
+        to_print1 = ""
+        to_print2 = ""
+        to_print3 = ""
+        to_print4 = ""
+        n = len(self.escadron.pers)
+        for k in range(n):
+            pers = self.escadron.pers[k]
+            if k < (n//4):
+                to_print1 = to_print1 + pers["lst"] + "     " + str(pers["px"]) + "€\n"
+            elif (n//4) <= k < 2*(n//4):
+                to_print2 = to_print2 + pers["lst"] + "     " + str(pers["px"]) + "€\n"
+            elif 2*(n//4) <= k < 3*(n//4):
+                to_print3 = to_print3 + pers["lst"] + "     " + str(pers["px"]) + "€\n"
+            else:
+                to_print4 = to_print4 + pers["lst"] + "     " + str(pers["px"]) + "€\n"
+        box = BoxLayout(cols = 4)
+        box.add_widget(Label(text = to_print1))
+        box.add_widget(Label(text = to_print2))
+        box.add_widget(Label(text = to_print3))
+        box.add_widget(Label(text = to_print4))
+        pop = Popup(title = "Compte-rendu des dépenses",
+                    size_hint = (0.9,0.9),
+                    content = box)
         pop.open()
 
 class Escadron(GridLayout):
@@ -121,7 +168,7 @@ class Escadron(GridLayout):
 
     def addPerso(self,perso): #Add someone to the Escadron
         self.n += 1
-        self.pers.append({"lst":perso.last_name, "solde":perso.solde, "cns": perso.consos})
+        self.pers.append({"lst":perso.last_name, "solde":perso.solde, "cns": perso.consos, "px":perso.consospx})
         self.pers_widg.append(perso)
 
     def removePerso(self, name):
@@ -155,8 +202,7 @@ class Escadron(GridLayout):
     def saveEsc(self,fle): #Save Escadron in a file
         for i in range(self.n): #Conversion Widgets -> Dicts to be pickable/unpickable
             k = self.pers_widg[i]
-            self.pers[i] = {"lst":k.last_name, "solde":k.solde, "cns":k.consos} #Update values to make sure any changes are recorded
-            #(We probably use the saveEsc function when closing the app)
+            self.pers[i] = {"lst":k.last_name, "solde":k.solde, "cns":k.consos, "px": k.consospx} #Update values to make sure any changes are recorded
         pickle.dump({"pers":self.pers, "n":self.n}, fle)
 
     def loadEsc(self,fle): #Load Escadron from a file
@@ -165,12 +211,12 @@ class Escadron(GridLayout):
         self.pers = x["pers"]
 
     def grid(self): #Build grid
-        col = int(math.sqrt(self.n + 3))
+        col = int(math.sqrt(self.n + 4))
         self.g = GridLayout(cols = col)
-        color = [(0,0,1,0.5),(0,0,1,0.55)]
+        color = [(0,0,1,0.45),(0,0,1,0.55)]
         for i in range(len(self.pers)): #Add everyone in the grid
             k = self.pers[i]
-            perso = Personnel(lst = k["lst"], sld = k["solde"], cns = k["cns"], background_color = color[((i/col) + (i%col))%2])
+            perso = Personnel(lst = k["lst"], sld = k["solde"], cns = k["cns"], px = k["px"], background_color = color[((i/col) + (i%col))%2])
             self.pers_widg.append(perso)
             self.g.add_widget(self.pers_widg[i])
         return self.g
@@ -181,9 +227,10 @@ class Personnel(Button):
     global app
     solde = NumericProperty()
 
-    def __init__(self, lst = "", sld = 0, cns = 0, **kwargs):
+    def __init__(self, lst = "", sld = 0, cns = 0, px = 0, **kwargs):
         self.last_name = lst
         self.consos = cns
+        self.consospx = px
         self.solde = sld
         super(Personnel,self).__init__(**kwargs) #Init of the "Button" instance
 
@@ -194,14 +241,15 @@ class Personnel(Button):
         app.card.cons[cons.name]["tot"] += 1
         self.solde -= cons.prix
         self.consos += 1
+        self.consospx += cons.prix
 
     def multipleCons(self,n,cons): #Payer plusieurs consos
         for k in range(n):
             self.payCons(cons)
 
-    def action(self, cons): #Action des boutons buttcaf et buttcons: consommation et fermeture de la popup
+    def action(self, cons): #Action des boutons par conso
         textinput = TextInput(multiline = False,
-                                text = "0",
+                                text = "1",
                                 input_type = "number")
         popup2 = Popup(title = "Quantité de " + cons.name,
                         size_hint = (0.4,0.4),
@@ -227,6 +275,8 @@ class Personnel(Button):
         def pay (pwd, montant):
             if pwd.text == app.pwd.password:
                 self.addMoney(float(montant.text))
+            else:
+                Popup(size_hint = (0.4,0.4),content = Label(text = "Échec mot de passe")).open()
         popup2.bind(on_dismiss = lambda x: pay(pwd, montant))
         popup2.open()
         return montant.text
@@ -240,7 +290,7 @@ class Personnel(Button):
         content.add_widget(carte)
         content.add_widget(Button(text = "Add\nmoney", on_press = lambda x : self.actionask()))
         popup = Popup(title = "Choisis ta conso, mon cher " + self.last_name,
-                        size_hint = (0.3,0.5),
+                        size_hint = (0.5,0.5),
                         content = content)
         popup.open()
 
@@ -260,6 +310,8 @@ class PassWord(Button):
     def change(self, old, new): #Changer le mot de passe si et seulement si on connait l'ancien
         if old == self.password:
             self.password = new
+        else:
+            Popup(size_hint = (0.4,0.4), content = Label(text = "Mauvais mot de passe")).open()
 
     def change_pass(self): #Ouvrir une fenêtre, demander l'ancien et le nouveau mdp et changer.
         old = TextInput(text = "Ancien",
@@ -269,7 +321,8 @@ class PassWord(Button):
         box = BoxLayout(orientation = "vertical")
         box.add_widget(old)
         box.add_widget(new)
-        popup = Popup(size_hint = (0.4,0.4),
+        popup = Popup (pos_hint = {"x": 0.3, "y": 0.6},
+                        size_hint = (0.4,0.4),
                         title = "Changer le mot de passe",
                         content = box)
         new.bind(on_text_validate = popup.dismiss)
@@ -293,6 +346,7 @@ class BarApp(App):
         self.root = root = self.esc.grid() #Construire une grille
         self.card = Carte()
         self.card.loadCarte(open("cartefile.txt","rb"))
+        self.dep = Depenses(self.esc)
         root.add_widget(Label()) #Une case vide pour séparer les noms du reste -- si on pouvait ajouter depuis la fin ça serait mieux
         #mais j'ai cru comprendre dans la doc de kivy que c'était impossible ...
         stat = Stats(self.esc, self.card) #Construire les statistiques
@@ -302,6 +356,7 @@ class BarApp(App):
         box.add_widget(Button(text = "Remove", on_press = lambda x : self.esc.removeButton()))
         root.add_widget(box)
         root.add_widget(self.pwd)
+        root.add_widget(self.dep)
         return root
 
     def on_stop(self): #Ce que l'application fait quand on la ferme (sauvegarde des données)

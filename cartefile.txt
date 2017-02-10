@@ -25,14 +25,21 @@ g5
 F0.8
 sg6
 I0
-ssS'Caf\xc3\xa9'
+ssS'Quart\nde f\xc3\xbbt'
 p11
 (dp12
+g5
+I20
+sg6
+I0
+ssS'Caf\xc3\xa9'
+p13
+(dp14
 g5
 F0.5
 sg6
 I0
 sssS'n'
-p13
-I4
+p15
+I5
 s.
